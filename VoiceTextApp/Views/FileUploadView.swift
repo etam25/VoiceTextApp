@@ -3,10 +3,12 @@ import UniformTypeIdentifiers
 
 struct FileUploadView: View {
     @State private var showPicker = false
+    @State private var showSaveNote = false
     @State private var fileName: String?
     @State private var fileSize: String?
     @State private var fileExtension: String?
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var notesStore: NotesStore
 
     var body: some View {
         NavigationStack {
@@ -39,6 +41,14 @@ struct FileUploadView: View {
                     fileSize: $fileSize,
                     fileExtension: $fileExtension
                 )
+            }
+            .sheet(isPresented: $showSaveNote) {
+                SaveNoteView(
+                    type: .file,
+                    content: [fileName, fileSize].compactMap { $0 }.joined(separator: " • "),
+                    audioURL: nil
+                )
+                .environmentObject(notesStore)
             }
         }
     }
@@ -100,6 +110,16 @@ struct FileUploadView: View {
                         .cornerRadius(12)
                 }
             }
+
+            Button(action: { showSaveNote = true }) {
+                Label("Save as Note", systemImage: "square.and.arrow.down")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(LinearGradient(colors: [.green, .teal], startPoint: .leading, endPoint: .trailing))
+                    .foregroundColor(.white)
+                    .cornerRadius(14)
+            }
         }
         .padding()
     }
@@ -110,36 +130,22 @@ struct FileUploadView: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 22)
                         .strokeBorder(
-                            LinearGradient(
-                                colors: [.green, .teal],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
+                            LinearGradient(colors: [.green, .teal], startPoint: .topLeading, endPoint: .bottomTrailing),
                             style: StrokeStyle(lineWidth: 2, dash: [10, 6])
                         )
-                        .background(
-                            RoundedRectangle(cornerRadius: 22)
-                                .fill(Color.green.opacity(0.04))
-                        )
+                        .background(RoundedRectangle(cornerRadius: 22).fill(Color.green.opacity(0.04)))
                         .frame(height: 220)
 
                     VStack(spacing: 16) {
                         Image(systemName: "doc.badge.plus")
                             .font(.system(size: 54))
                             .foregroundStyle(
-                                LinearGradient(
-                                    colors: [.green, .teal],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+                                LinearGradient(colors: [.green, .teal], startPoint: .topLeading, endPoint: .bottomTrailing)
                             )
 
                         VStack(spacing: 4) {
-                            Text("Tap to select a file")
-                                .font(.headline)
-                            Text("Any file type supported")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            Text("Tap to select a file").font(.headline)
+                            Text("Any file type supported").font(.caption).foregroundColor(.secondary)
                         }
                     }
                 }
@@ -152,9 +158,7 @@ struct FileUploadView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(
-                        LinearGradient(colors: [.green, .teal], startPoint: .leading, endPoint: .trailing)
-                    )
+                    .background(LinearGradient(colors: [.green, .teal], startPoint: .leading, endPoint: .trailing))
                     .foregroundColor(.white)
                     .cornerRadius(16)
             }
@@ -201,12 +205,7 @@ struct GeneralFilePicker: UIViewControllerRepresentable {
         @Binding var fileExtension: String?
         let dismiss: DismissAction
 
-        init(
-            fileName: Binding<String?>,
-            fileSize: Binding<String?>,
-            fileExtension: Binding<String?>,
-            dismiss: DismissAction
-        ) {
+        init(fileName: Binding<String?>, fileSize: Binding<String?>, fileExtension: Binding<String?>, dismiss: DismissAction) {
             _fileName = fileName
             _fileSize = fileSize
             _fileExtension = fileExtension
@@ -217,15 +216,12 @@ struct GeneralFilePicker: UIViewControllerRepresentable {
             guard let url = urls.first else { return }
             guard url.startAccessingSecurityScopedResource() else { return }
             defer { url.stopAccessingSecurityScopedResource() }
-
             fileName = url.lastPathComponent
             fileExtension = url.pathExtension
-
             if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
                let size = attrs[.size] as? Int64 {
                 fileSize = ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
             }
-
             dismiss()
         }
     }

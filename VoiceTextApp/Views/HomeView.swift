@@ -48,6 +48,11 @@ struct HomeView: View {
             }
             .navigationTitle("Home")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink(destination: NotesView()) {
+                        Image(systemName: "note.text")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { isLoggedIn = false }) {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
