@@ -6,7 +6,9 @@ struct CameraTextView: View {
     @State private var showCamera = false
     @State private var capturedImage: UIImage?
     @State private var copyConfirmed = false
+    @State private var showSaveNote = false
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var notesStore: NotesStore
 
     var body: some View {
         NavigationStack {
@@ -34,6 +36,14 @@ struct CameraTextView: View {
             .sheet(isPresented: $showCamera) {
                 CameraPicker(image: $capturedImage)
                     .ignoresSafeArea()
+            }
+            .sheet(isPresented: $showSaveNote) {
+                SaveNoteView(
+                    type: .textScan,
+                    content: ocrVM.recognizedText,
+                    audioURL: nil
+                )
+                .environmentObject(notesStore)
             }
             .onChange(of: capturedImage) { _, newImage in
                 if let img = newImage {
@@ -72,20 +82,16 @@ struct CameraTextView: View {
                 Button(action: { showCamera = true }) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 22)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.orange.opacity(0.08), Color.red.opacity(0.08)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
                             .strokeBorder(
-                                LinearGradient(
-                                    colors: [.orange, .red],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
+                                LinearGradient(colors: [.orange, .red], startPoint: .topLeading, endPoint: .bottomTrailing),
                                 style: StrokeStyle(lineWidth: 2, dash: [10, 6])
+                            )
+                            .background(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .fill(LinearGradient(
+                                        colors: [Color.orange.opacity(0.08), Color.red.opacity(0.08)],
+                                        startPoint: .topLeading, endPoint: .bottomTrailing
+                                    ))
                             )
                             .frame(height: 240)
 
@@ -93,16 +99,11 @@ struct CameraTextView: View {
                             Image(systemName: "camera.viewfinder")
                                 .font(.system(size: 58))
                                 .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [.orange, .red],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
+                                    LinearGradient(colors: [.orange, .red], startPoint: .topLeading, endPoint: .bottomTrailing)
                                 )
 
                             VStack(spacing: 4) {
-                                Text("Take a photo to scan text")
-                                    .font(.headline)
+                                Text("Take a photo to scan text").font(.headline)
                                 Text("Point your camera at printed or handwritten text")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
@@ -129,9 +130,7 @@ struct CameraTextView: View {
                 .font(.headline)
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(
-                    LinearGradient(colors: [.orange, .red], startPoint: .leading, endPoint: .trailing)
-                )
+                .background(LinearGradient(colors: [.orange, .red], startPoint: .leading, endPoint: .trailing))
                 .foregroundColor(.white)
                 .cornerRadius(14)
             }
@@ -146,9 +145,7 @@ struct CameraTextView: View {
         if ocrVM.isProcessing {
             VStack(spacing: 14) {
                 ProgressView().scaleEffect(1.2)
-                Text("Scanning text…")
-                    .foregroundColor(.secondary)
-                    .font(.subheadline)
+                Text("Scanning text…").foregroundColor(.secondary).font(.subheadline)
             }
             .frame(maxWidth: .infinity)
             .padding(36)
@@ -158,18 +155,23 @@ struct CameraTextView: View {
         } else if !ocrVM.recognizedText.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Label("Recognized Text", systemImage: "text.alignleft")
-                        .font(.headline)
-
+                    Label("Recognized Text", systemImage: "text.alignleft").font(.headline)
                     Spacer()
+                    HStack(spacing: 12) {
+                        Button(action: copyText) {
+                            Label(
+                                copyConfirmed ? "Copied!" : "Copy",
+                                systemImage: copyConfirmed ? "checkmark.circle.fill" : "doc.on.doc"
+                            )
+                            .font(.subheadline.weight(.medium))
+                            .foregroundColor(copyConfirmed ? .green : .blue)
+                        }
 
-                    Button(action: copyText) {
-                        Label(
-                            copyConfirmed ? "Copied!" : "Copy",
-                            systemImage: copyConfirmed ? "checkmark.circle.fill" : "doc.on.doc"
-                        )
-                        .font(.subheadline.weight(.medium))
-                        .foregroundColor(copyConfirmed ? .green : .blue)
+                        Button(action: { showSaveNote = true }) {
+                            Label("Save", systemImage: "square.and.arrow.down")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(.purple)
+                        }
                     }
                 }
 
@@ -186,11 +188,8 @@ struct CameraTextView: View {
             .padding(.horizontal)
         } else if let error = ocrVM.errorMessage {
             HStack(spacing: 10) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundColor(.orange)
-                Text(error)
-                    .foregroundColor(.secondary)
-                    .font(.subheadline)
+                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
+                Text(error).foregroundColor(.secondary).font(.subheadline)
             }
             .padding()
             .background(.ultraThinMaterial)
@@ -234,10 +233,7 @@ struct CameraPicker: UIViewControllerRepresentable {
             self.dismiss = dismiss
         }
 
-        func imagePickerController(
-            _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
-        ) {
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             image = info[.originalImage] as? UIImage
             dismiss()
         }

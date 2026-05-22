@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
+import Combine
 
 struct VoiceMessageView: View {
     @StateObject private var vm = VoiceRecorderViewModel()
@@ -57,6 +58,8 @@ struct VoiceMessageView: View {
 
 struct RecordTab: View {
     @ObservedObject var vm: VoiceRecorderViewModel
+    @EnvironmentObject var notesStore: NotesStore
+    @State private var showSaveNote = false
 
     var body: some View {
         VStack(spacing: 36) {
@@ -73,7 +76,7 @@ struct RecordTab: View {
                 .animation(.default, value: vm.recordingDuration)
 
             Button(action: {
-                vm.isRecording ? vm.stopRecording() : vm.requestPermissionAndRecord()
+                if vm.isRecording { vm.stopRecording() } else { vm.requestPermissionAndRecord() }
             }) {
                 ZStack {
                     Circle()
@@ -111,6 +114,17 @@ struct RecordTab: View {
 
             if vm.recordedURL != nil && !vm.isRecording {
                 playbackControls
+
+                Button(action: { showSaveNote = true }) {
+                    Label("Save as Note", systemImage: "square.and.arrow.down")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(LinearGradient(colors: [.blue, .indigo], startPoint: .leading, endPoint: .trailing))
+                        .foregroundColor(.white)
+                        .cornerRadius(14)
+                }
+                .padding(.horizontal)
             }
 
             if let err = vm.errorMessage {
@@ -120,11 +134,19 @@ struct RecordTab: View {
             Spacer()
         }
         .padding()
+        .sheet(isPresented: $showSaveNote) {
+            SaveNoteView(
+                type: .voice,
+                content: "Recorded voice message • \(vm.formatTime(vm.recordingDuration))",
+                audioURL: vm.recordedURL
+            )
+            .environmentObject(notesStore)
+        }
     }
 
     private var playbackControls: some View {
         HStack(spacing: 24) {
-            Button(action: { vm.isPlaying ? vm.stopPlayback() : vm.play() }) {
+            Button(action: { if vm.isPlaying { vm.stopPlayback() } else { vm.play() } }) {
                 Label(
                     vm.isPlaying ? "Stop" : "Play",
                     systemImage: vm.isPlaying ? "stop.circle.fill" : "play.circle.fill"
@@ -150,6 +172,8 @@ struct RecordTab: View {
 struct UploadAudioTab: View {
     @ObservedObject var vm: VoiceRecorderViewModel
     @Binding var showAudioPicker: Bool
+    @EnvironmentObject var notesStore: NotesStore
+    @State private var showSaveNote = false
 
     var body: some View {
         VStack(spacing: 32) {
@@ -175,7 +199,7 @@ struct UploadAudioTab: View {
                     }
 
                     HStack(spacing: 20) {
-                        Button(action: { vm.isPlaying ? vm.stopPlayback() : vm.play() }) {
+                        Button(action: { if vm.isPlaying { vm.stopPlayback() } else { vm.play() } }) {
                             Label(
                                 vm.isPlaying ? "Stop" : "Play",
                                 systemImage: vm.isPlaying ? "stop.circle.fill" : "play.circle.fill"
@@ -198,6 +222,17 @@ struct UploadAudioTab: View {
                             .background(.ultraThinMaterial)
                             .cornerRadius(10)
                     }
+
+                    Button(action: { showSaveNote = true }) {
+                        Label("Save as Note", systemImage: "square.and.arrow.down")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(LinearGradient(colors: [.blue, .indigo], startPoint: .leading, endPoint: .trailing))
+                            .foregroundColor(.white)
+                            .cornerRadius(14)
+                    }
+                    .padding(.horizontal)
                 }
             } else {
                 VStack(spacing: 20) {
@@ -232,6 +267,14 @@ struct UploadAudioTab: View {
             Spacer()
         }
         .padding()
+        .sheet(isPresented: $showSaveNote) {
+            SaveNoteView(
+                type: .voice,
+                content: "Uploaded: \(vm.uploadedFileName ?? "audio file")",
+                audioURL: vm.uploadedURL
+            )
+            .environmentObject(notesStore)
+        }
     }
 }
 
@@ -255,9 +298,7 @@ struct WaveformView: View {
         }
         .onReceive(timer) { _ in
             guard isAnimating else {
-                if heights.first != 4 {
-                    heights = Array(repeating: 4, count: 24)
-                }
+                if heights.first != 4 { heights = Array(repeating: 4, count: 24) }
                 return
             }
             for i in 0..<heights.count {

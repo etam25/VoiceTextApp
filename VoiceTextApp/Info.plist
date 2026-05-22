@@ -2,15 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>VoiceText needs microphone access to record voice messages.</string>
-    <key>NSCameraUsageDescription</key>
-    <string>VoiceText needs camera access to take photos for text recognition.</string>
-    <key>NSPhotoLibraryUsageDescription</key>
-    <string>VoiceText needs photo library access to select images for text recognition.</string>
-    <key>UIFileSharingEnabled</key>
-    <true/>
-    <key>LSSupportsOpeningDocumentsInPlace</key>
-    <true/>
+	<key>Privacy - Camera Usage Description
+</key>
+	<string></string>
+	<key>Privacy - Microphone Usage Description
+Privacy - Microphone Usage Description</key>
+	<string></string>
 </dict>
 </plist>

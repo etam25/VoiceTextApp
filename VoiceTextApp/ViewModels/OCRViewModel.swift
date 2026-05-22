@@ -1,6 +1,7 @@
 import Vision
 import UIKit
 import SwiftUI
+import Combine
 
 class OCRViewModel: ObservableObject {
     @Published var recognizedText = ""
