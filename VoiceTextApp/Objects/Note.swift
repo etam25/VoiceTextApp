@@ -8,6 +8,7 @@ struct Note: Identifiable, Codable {
     var content: String
     var audioFileName: String?
 
+    
     enum NoteType: String, Codable {
         case voice, file, textScan
 
