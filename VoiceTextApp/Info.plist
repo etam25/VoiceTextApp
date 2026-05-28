@@ -8,5 +8,7 @@
 	<key>Privacy - Microphone Usage Description
 Privacy - Microphone Usage Description</key>
 	<string></string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Used to transcribe your voice recordings into text notes.</string>
 </dict>
 </plist>

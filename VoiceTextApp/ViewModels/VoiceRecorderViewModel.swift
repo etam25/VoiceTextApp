@@ -1,16 +1,19 @@
 import AVFoundation
 import SwiftUI
 import Combine
+import Speech
 
 class VoiceRecorderViewModel: NSObject, ObservableObject {
     @Published var isRecording = false
     @Published var isPlaying = false
+    @Published var isTranscribing = false
     @Published var recordingDuration: TimeInterval = 0
     @Published var recordedURL: URL?
     @Published var uploadedURL: URL?
     @Published var uploadedFileName: String?
     @Published var permissionDenied = false
     @Published var errorMessage: String?
+    @Published var transcribedText: String = ""
 
     private var audioRecorder: AVAudioRecorder?
     private var audioPlayer: AVAudioPlayer?
@@ -74,7 +77,30 @@ class VoiceRecorderViewModel: NSObject, ObservableObject {
         recordedURL = newRecordingURL
         uploadedURL = nil
         uploadedFileName = nil
+        transcribedText = ""
         try? AVAudioSession.sharedInstance().setActive(false)
+        transcribeAudio(at: newRecordingURL)
+    }
+
+    private func transcribeAudio(at url: URL) {
+        SFSpeechRecognizer.requestAuthorization { [weak self] status in
+            guard status == .authorized, let self else { return }
+            let recognizer = SFSpeechRecognizer()
+            guard recognizer?.isAvailable == true else { return }
+            let request = SFSpeechURLRecognitionRequest(url: url)
+            request.shouldReportPartialResults = false
+            DispatchQueue.main.async { self.isTranscribing = true }
+            recognizer?.recognitionTask(with: request) { [weak self] result, error in
+                DispatchQueue.main.async {
+                    self?.isTranscribing = false
+                    if let text = result?.bestTranscription.formattedString, !text.isEmpty {
+                        self?.transcribedText = text
+                    } else if let error {
+                        self?.errorMessage = "Transcription failed: \(error.localizedDescription)"
+                    }
+                }
+            }
+        }
     }
 
     func play() {
@@ -103,6 +129,7 @@ class VoiceRecorderViewModel: NSObject, ObservableObject {
         uploadedURL = nil
         uploadedFileName = nil
         recordingDuration = 0
+        transcribedText = ""
     }
 
     func setUploadedFile(url: URL, name: String) {

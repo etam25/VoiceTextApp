@@ -115,6 +115,25 @@ struct RecordTab: View {
             if vm.recordedURL != nil && !vm.isRecording {
                 playbackControls
 
+                if vm.isTranscribing {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text("Transcribing…")
+                            .foregroundColor(.secondary)
+                            .font(.subheadline)
+                    }
+                } else if !vm.transcribedText.isEmpty {
+                    Text(vm.transcribedText)
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                }
+
                 Button(action: { showSaveNote = true }) {
                     Label("Save as Note", systemImage: "square.and.arrow.down")
                         .font(.headline)
@@ -125,6 +144,7 @@ struct RecordTab: View {
                         .cornerRadius(14)
                 }
                 .padding(.horizontal)
+                .disabled(vm.isTranscribing)
             }
 
             if let err = vm.errorMessage {
@@ -137,7 +157,9 @@ struct RecordTab: View {
         .sheet(isPresented: $showSaveNote) {
             SaveNoteView(
                 type: .voice,
-                content: "Recorded voice message • \(vm.formatTime(vm.recordingDuration))",
+                content: vm.transcribedText.isEmpty
+                    ? "Recorded voice message • \(vm.formatTime(vm.recordingDuration))"
+                    : vm.transcribedText,
                 audioURL: vm.recordedURL
             )
             .environmentObject(notesStore)
