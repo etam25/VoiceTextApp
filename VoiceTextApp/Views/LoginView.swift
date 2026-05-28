@@ -34,11 +34,11 @@ struct LoginView: View {
                             )
                         )
 
-                    Text("VoiceText")
+                    Text("Note Recordings")
                         .font(.system(size: 36, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
 
-                    Text("Your all-in-one media companion")
+                    Text("Testing app for recording notes")
                         .font(.subheadline)
                         .foregroundColor(.white.opacity(0.65))
                 }

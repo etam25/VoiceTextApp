@@ -7,6 +7,7 @@ struct FileUploadView: View {
     @State private var fileName: String?
     @State private var fileSize: String?
     @State private var fileExtension: String?
+    @State private var fileContent: String?
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var notesStore: NotesStore
 
@@ -39,13 +40,14 @@ struct FileUploadView: View {
                 GeneralFilePicker(
                     fileName: $fileName,
                     fileSize: $fileSize,
-                    fileExtension: $fileExtension
+                    fileExtension: $fileExtension,
+                    fileContent: $fileContent
                 )
             }
             .sheet(isPresented: $showSaveNote) {
                 SaveNoteView(
                     type: .file,
-                    content: [fileName, fileSize].compactMap { $0 }.joined(separator: " • "),
+                    content: fileContent ?? [fileName, fileSize].compactMap { $0 }.joined(separator: " • "),
                     audioURL: nil
                 )
                 .environmentObject(notesStore)
@@ -100,7 +102,7 @@ struct FileUploadView: View {
                         .cornerRadius(12)
                 }
 
-                Button(action: { fileName = nil; fileSize = nil; fileExtension = nil }) {
+                Button(action: { fileName = nil; fileSize = nil; fileExtension = nil; fileContent = nil }) {
                     Label("Remove", systemImage: "trash")
                         .font(.subheadline.weight(.medium))
                         .padding(.horizontal, 20)
@@ -185,6 +187,7 @@ struct GeneralFilePicker: UIViewControllerRepresentable {
     @Binding var fileName: String?
     @Binding var fileSize: String?
     @Binding var fileExtension: String?
+    @Binding var fileContent: String?
     @Environment(\.dismiss) private var dismiss
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
@@ -196,19 +199,21 @@ struct GeneralFilePicker: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(fileName: $fileName, fileSize: $fileSize, fileExtension: $fileExtension, dismiss: dismiss)
+        Coordinator(fileName: $fileName, fileSize: $fileSize, fileExtension: $fileExtension, fileContent: $fileContent, dismiss: dismiss)
     }
 
     class Coordinator: NSObject, UIDocumentPickerDelegate {
         @Binding var fileName: String?
         @Binding var fileSize: String?
         @Binding var fileExtension: String?
+        @Binding var fileContent: String?
         let dismiss: DismissAction
 
-        init(fileName: Binding<String?>, fileSize: Binding<String?>, fileExtension: Binding<String?>, dismiss: DismissAction) {
+        init(fileName: Binding<String?>, fileSize: Binding<String?>, fileExtension: Binding<String?>, fileContent: Binding<String?>, dismiss: DismissAction) {
             _fileName = fileName
             _fileSize = fileSize
             _fileExtension = fileExtension
+            _fileContent = fileContent
             self.dismiss = dismiss
         }
 
@@ -221,6 +226,11 @@ struct GeneralFilePicker: UIViewControllerRepresentable {
             if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
                let size = attrs[.size] as? Int64 {
                 fileSize = ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+            }
+            if let text = try? String(contentsOf: url, encoding: .utf8) {
+                fileContent = text
+            } else {
+                fileContent = nil
             }
             dismiss()
         }
